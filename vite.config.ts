@@ -8,6 +8,6 @@ export default defineConfig({
   plugins: [react()],
   base: './', 
   define: {
-    'process.env.ADMIN_PASSWORD': JSON.stringify(process.env.ADMIN_PASSWORD || 'Admin2025')
+    'process.env.ADMIN_PASSWORD': JSON.stringify(process.env.ADMIN_PASSWORD)
   }
 });

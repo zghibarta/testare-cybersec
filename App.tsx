@@ -21,7 +21,7 @@ const App: React.FC = () => {
   // Ruta "invizibilă" pentru admin: #dashboard
   useEffect(() => {
     const handleHashChange = () => {
-      if (window.location.hash === '#dashboard') {
+      if (window.location.hash === '#dashboard' && view !== 'DASHBOARD') {
         setView('ADMIN_AUTH');
       } else if (window.location.hash === '' && (view === 'ADMIN_AUTH' || view === 'DASHBOARD')) {
         setView('LANDING');
