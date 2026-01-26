@@ -159,13 +159,10 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <header className="bg-slate-900 text-white p-4 shadow-md sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
+        <div className="max-w-5xl mx-auto flex justify-center items-center">
           <div className="flex items-center space-x-2 cursor-pointer group" onClick={reset}>
             <div className="w-8 h-8 bg-blue-600 group-hover:bg-blue-500 rounded flex items-center justify-center font-bold transition-colors">C</div>
             <span className="text-xl font-semibold tracking-tight">Evaluare CyberSec</span>
-          </div>
-          <div className="text-[10px] text-slate-600 font-mono tracking-widest uppercase select-none">
-            Integritate • Vigilentă
           </div>
         </div>
       </header>
