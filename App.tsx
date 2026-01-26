@@ -41,6 +41,10 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadResults = async () => {
       try {
+        // Sign in anonymously to access Firestore
+        if (!auth.currentUser) {
+          await signInAnonymously(auth);
+        }
         const results = await getResultsFromFirebase();
         setResultsHistory(results);
       } catch (error) {
