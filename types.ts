@@ -29,6 +29,7 @@ export interface CandidateResult {
   categoryPerformance: Record<Category, number>;
   responses: number[];
   questions: SecureQuestion[];
+  timestamp?: Date; // Optional pentru compatibilitate
 }
 
 export type View = 'LANDING' | 'QUIZ' | 'RESULTS' | 'ADMIN_AUTH' | 'DASHBOARD' | 'CANDIDATE_DETAILS';

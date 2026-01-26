@@ -3,6 +3,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, SecureQuestion, CandidateResult, Category } from './types';
 import { generateQuizSet, stripAnswers } from './utils/quizHelpers';
 import { MasterAnswerKey } from './data/questions';
+import { saveResultToFirebase, getResultsFromFirebase, deleteResultFromFirebase } from './utils/firebaseHelpers';
+import { auth } from './firebase';
+import { signInAnonymously } from 'firebase/auth';
 import Landing from './components/Landing';
 import Quiz from './components/Quiz';
 import Results from './components/Results';
@@ -17,6 +20,7 @@ const App: React.FC = () => {
   const [lastResult, setLastResult] = useState<CandidateResult | null>(null);
   const [resultsHistory, setResultsHistory] = useState<CandidateResult[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateResult | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Ruta "invizibilă" pentru admin: #dashboard
   useEffect(() => {
@@ -35,28 +39,60 @@ const App: React.FC = () => {
   }, [view]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('quiz_results');
-    if (saved) {
-      setResultsHistory(JSON.parse(saved));
+    const loadResults = async () => {
+      try {
+        const results = await getResultsFromFirebase();
+        setResultsHistory(results);
+      } catch (error) {
+        console.error("Failed to load results:", error);
+        // Fallback to localStorage if Firebase fails
+        const saved = localStorage.getItem('quiz_results');
+        if (saved) {
+          setResultsHistory(JSON.parse(saved));
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadResults();
+  }, []);
+
+  const saveResult = useCallback(async (result: CandidateResult) => {
+    try {
+      await saveResultToFirebase(result);
+      setResultsHistory(prev => [result, ...prev]);
+    } catch (error) {
+      console.error("Failed to save result:", error);
+      // Fallback to localStorage
+      setResultsHistory(prev => {
+        const updated = [result, ...prev];
+        localStorage.setItem('quiz_results', JSON.stringify(updated));
+        return updated;
+      });
     }
   }, []);
 
-  const saveResult = useCallback((result: CandidateResult) => {
-    setResultsHistory(prev => {
-      const updated = [result, ...prev];
-      localStorage.setItem('quiz_results', JSON.stringify(updated));
-      return updated;
-    });
-  }, []);
-
-  const startQuiz = (name: string) => {
-    const freshQuiz = generateQuizSet();
-    setCandidateName(name);
-    setCurrentQuiz(freshQuiz);
-    setView('QUIZ');
+  const startQuiz = async (name: string) => {
+    try {
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+      }
+      const freshQuiz = generateQuizSet();
+      setCandidateName(name);
+      setCurrentQuiz(freshQuiz);
+      setView('QUIZ');
+    } catch (error) {
+      console.error("Failed to sign in:", error);
+      // Proceed anyway, but results might not save
+      const freshQuiz = generateQuizSet();
+      setCandidateName(name);
+      setCurrentQuiz(freshQuiz);
+      setView('QUIZ');
+    }
   };
 
-  const finishQuiz = (userAnswers: number[]) => {
+  const finishQuiz = async (userAnswers: number[]) => {
     let score = 0;
     const catPerf: Record<Category, number> = {
       [Category.SIEM]: 0,
@@ -86,24 +122,36 @@ const App: React.FC = () => {
     };
 
     setLastResult(result);
-    saveResult(result);
+    await saveResult(result);
     setView('RESULTS');
   };
 
+  const deleteResult = useCallback(async (id: string) => {
+    try {
+      await deleteResultFromFirebase(id);
+      setResultsHistory(prev => prev.filter(r => r.id !== id));
+    } catch (error) {
+      console.error("Failed to delete result:", error);
+      // Fallback to local update
+      setResultsHistory(prev => {
+        const updated = prev.filter(r => r.id !== id);
+        localStorage.setItem('quiz_results', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, []);
+
+  const viewCandidateDetails = (result: CandidateResult) => {
+    setSelectedCandidate(result);
+    setView('CANDIDATE_DETAILS');
+  };
   const reset = () => {
-    if (window.location.hash) window.history.replaceState(null, '', ' ');
     setView('LANDING');
     setCandidateName('');
     setCurrentQuiz([]);
     setLastResult(null);
     setSelectedCandidate(null);
   };
-
-  const viewCandidateDetails = (result: CandidateResult) => {
-    setSelectedCandidate(result);
-    setView('CANDIDATE_DETAILS');
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <header className="bg-slate-900 text-white p-4 shadow-md sticky top-0 z-50">
@@ -138,11 +186,7 @@ const App: React.FC = () => {
             results={resultsHistory} 
             onBack={reset} 
             onViewDetails={viewCandidateDetails}
-            onDelete={(id) => {
-              const updated = resultsHistory.filter(r => r.id !== id);
-              setResultsHistory(updated);
-              localStorage.setItem('quiz_results', JSON.stringify(updated));
-            }}
+            onDelete={deleteResult}
           />
         )}
         {view === 'CANDIDATE_DETAILS' && selectedCandidate && (

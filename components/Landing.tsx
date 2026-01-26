@@ -2,16 +2,16 @@
 import React, { useState } from 'react';
 
 interface LandingProps {
-  onStart: (name: string) => void;
+  onStart: (name: string) => Promise<void>;
 }
 
 const Landing: React.FC<LandingProps> = ({ onStart }) => {
   const [name, setName] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      onStart(name.trim());
+      await onStart(name.trim());
     }
   };
 

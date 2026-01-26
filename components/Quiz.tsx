@@ -5,7 +5,7 @@ import { shuffleArray } from '../utils/quizHelpers';
 
 interface QuizProps {
   questions: Question[];
-  onFinish: (answers: number[]) => void;
+  onFinish: (answers: number[]) => void | Promise<void>;
 }
 
 const Quiz: React.FC<QuizProps> = ({ questions, onFinish }) => {
@@ -40,11 +40,11 @@ const Quiz: React.FC<QuizProps> = ({ questions, onFinish }) => {
     setTimeLeft(60);
   }, [currentIndex]);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      onFinish(answers);
+      await onFinish(answers);
     }
   };
 
